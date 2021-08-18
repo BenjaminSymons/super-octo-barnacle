@@ -3,13 +3,24 @@
   import { quintOut, quintInOut } from "svelte/easing";
   import { crossfade } from "svelte/transition";
   import { flip } from "svelte/animate";
-  import { PersonalAccessToken, UserObject } from "./stores.js";
+  import { CurrentStage, ReposToDelete } from "./stores.js";
 
   let repos = [];
   let isLoading = true;
 
+  let selected = [];
+
+  // $: selected = repos.reduce((previousValue, currentValue) => {
+  //   if (currentValue.selected) {
+  //     previousValue.push(currentValue.name);
+  //   }
+  //   return previousValue;
+  // }, []);
+
+    $: selected = repos.filter((t) => t.selected);
+
   const [send, receive] = crossfade({
-    duration: d => Math.sqrt(d * 200),
+    duration: (d) => Math.sqrt(d * 200),
 
     fallback(node, params) {
       const style = getComputedStyle(node);
@@ -26,6 +37,15 @@
     },
   });
 
+  function handleStageIncrement() {
+    ReposToDelete.set(selected);
+    CurrentStage.set($CurrentStage + 1);
+  }
+
+  function handleStageDecrement() {
+    CurrentStage.set($CurrentStage - 1);
+  }
+
   onMount(async () => {
     let login = localStorage.getItem("_login");
     const res = await fetch(`https://api.github.com/users/${login}/repos`);
@@ -36,7 +56,19 @@
 </script>
 
 <div class="page">
-    <slot />
+  <div class="button-group">
+    <button class="button stager" on:click={handleStageDecrement}
+      ><span class="material-icons">arrow_back</span>
+      <span>go back</span></button
+    >
+    <button
+      disabled={repos.filter((t) => t.selected).length === 0}
+      class="button stager"
+      on:click={handleStageIncrement}
+      ><span>keep going</span>
+      <span class="material-icons">arrow_forward</span>
+    </button>
+  </div>
   {#if isLoading}
     <p>loading...</p>
   {/if}
@@ -72,7 +104,6 @@
       </div>
     </div>
   {/if}
-
 </div>
 
 <style>
@@ -81,6 +112,27 @@
     justify-content: center;
     width: 80vw;
   }
+
+  .button {
+    padding-top: 1em;
+    padding-bottom: 1em;
+    margin: 0 1em;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-evenly;
+    width: 10em;
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 1px 2px 0px;
+  }
+
+  .button:not(:disabled):hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: space-evenly;
+  }
+
   .left,
   .right {
     padding: 0 1em 0 0;
@@ -92,7 +144,7 @@
   }
 
   input[type="checkbox"] {
-    margin: 3px 3px 3px 4px;
+    margin: 3px 0.5em 3px 6px;
   }
 
   label {
@@ -120,10 +172,9 @@
     background-color: rgb(180, 240, 100);
   }
 
-.page {
+  .page {
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
+  }
 </style>

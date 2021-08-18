@@ -1,13 +1,12 @@
 <script>
   import { onMount } from "svelte";
-  import { PersonalAccessToken, UserObject } from "./stores.js";
+  import { PersonalAccessToken, UserObject, CurrentStage } from "./stores.js";
   import Repos from "./Repos.svelte";
+  import Confirm from "./Confirm.svelte";
   import { fly, fade } from "svelte/transition";
 
   let pid = "";
   let pidValid = false;
-
-  let stage = 0;
 
   async function getUserDetails(PAT) {
     let user = await fetch("https://api.github.com/user", {
@@ -42,11 +41,7 @@
   }
 
   function handleStageIncrement() {
-    stage = stage + 1;
-  }
-
-  function handleStageDecrement() {
-    stage = stage - 1;
+    CurrentStage.set($CurrentStage + 1);
   }
 
   function handleIncorrectUser() {
@@ -68,7 +63,7 @@
 
 <main>
   <h1>Repo Sweeper</h1>
-  {#if stage === 0}
+  {#if $CurrentStage === 0}
     <div out:fly={{ x: -200, duration: 300 }} in:fade={{ delay: 400 }}>
       {#if $UserObject !== undefined}
         <h2>{$UserObject?.login}</h2>
@@ -77,7 +72,6 @@
           src={$UserObject?.avatar_url}
           class="avatar"
         />
-
         <h2>This you?</h2>
         <button class="button" on:click={handleStageIncrement}>Yeah</button>
         <button class="button" on:click={handleIncorrectUser}>Nah</button>
@@ -88,18 +82,18 @@
         <input bind:value={pid} id="pidInput" class="box" />
         <button class="button" on:click={handlePIDSubmit}>Submit</button>
       {/if}
-      <!-- <p>The pid value is {pid}</p> -->
       <p>Stored Token: {$PersonalAccessToken}</p>
-      <!-- <p>Stored User Object: {$UserObject}</p> -->
     </div>
   {/if}
-  {#if stage === 1}
+  {#if $CurrentStage === 1}
     <div out:fly={{ x: -200, duration: 300 }} in:fade={{ delay: 400 }}>
-      <Repos>
-        <button class="button stager" on:click={handleStageDecrement}
-          >← go back</button
-        >
-      </Repos>
+      <Repos />
+    </div>
+  {/if}
+
+  {#if $CurrentStage === 2}
+    <div out:fly={{ x: -200, duration: 300 }} in:fade={{ delay: 400 }}>
+      <Confirm />
     </div>
   {/if}
 </main>
@@ -142,15 +136,6 @@
   }
 
   .button:hover {
-    background-color: hsl(0, 0%, 88%);
-  }
-
-  .stager {
-    text-align: left;
-    border-radius: 1em;
-  }
-
-  .stager:hover {
     background-color: hsl(0, 0%, 88%);
   }
 
